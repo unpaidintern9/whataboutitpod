@@ -261,8 +261,8 @@ modal.addEventListener('close',()=>{embed.innerHTML='';document.querySelector('#
 const motion=document.querySelector('.motion-toggle');motion.addEventListener('click',()=>{const paused=motion.getAttribute('aria-pressed')!=='true';motion.setAttribute('aria-pressed',String(paused));motion.setAttribute('aria-label',paused?'Resume daily proverb':'Pause daily proverb');motion.closest('.ticker').classList.toggle('paused',paused);motion.title=paused?'Resume daily proverb':'Pause daily proverb';if(!paused)document.querySelector('.proverb-window').scrollLeft=0});
 
 
-// Daily Proverb: NLT from Tyndale’s free, noncommercial API.
-// https://api.nlt.to/documentation (anonymous: 500 requests/IP/day).
+// Daily Proverb: shared NLT cache refreshed by the daily GitHub workflow.
+// Visitors only read our JSON file; they never call Tyndale’s API.
 const DAILY_PROVERBS = [{"chapter": 1, "verse": 7}, {"chapter": 2, "verse": 6}, {"chapter": 3, "verse": 5}, {"chapter": 4, "verse": 23}, {"chapter": 5, "verse": 21}, {"chapter": 6, "verse": 23}, {"chapter": 7, "verse": 2}, {"chapter": 8, "verse": 11}, {"chapter": 9, "verse": 10}, {"chapter": 10, "verse": 12}, {"chapter": 11, "verse": 2}, {"chapter": 12, "verse": 25}, {"chapter": 13, "verse": 20}, {"chapter": 14, "verse": 26}, {"chapter": 15, "verse": 1}, {"chapter": 16, "verse": 3}, {"chapter": 17, "verse": 17}, {"chapter": 18, "verse": 10}, {"chapter": 19, "verse": 21}, {"chapter": 20, "verse": 24}, {"chapter": 21, "verse": 21}, {"chapter": 22, "verse": 1}, {"chapter": 23, "verse": 12}, {"chapter": 24, "verse": 3}, {"chapter": 25, "verse": 11}, {"chapter": 26, "verse": 20}, {"chapter": 27, "verse": 17}, {"chapter": 28, "verse": 1}, {"chapter": 29, "verse": 25}, {"chapter": 30, "verse": 5}, {"chapter": 31, "verse": 25}];
 const PROVERB_TIMEZONE = 'America/New_York';
 const proverbDateFormatter = new Intl.DateTimeFormat('en-US',{timeZone:PROVERB_TIMEZONE,year:'numeric',month:'2-digit',day:'2-digit'});
@@ -301,17 +301,6 @@ function paintDailyProverb(entry, text, status) {
   delete ticker.dataset.proverbLayout;
   layoutProverbTicker();
 }
-function parseNltVerse(html, entry) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const verse = doc.querySelector(`verse_export[ch="${entry.chapter}"][vn="${entry.verse}"]`);
-  if (!verse || verse.getAttribute('bk') !== 'prov') throw new Error('Missing NLT proverb');
-  verse.querySelectorAll('.vn, .tn, .fn, .footnote, script, style').forEach(node=>node.remove());
-  const lines = [...verse.querySelectorAll('p')];
-  const text = (lines.length ? lines.map(line=>line.textContent.trim()).join(' ') : verse.textContent)
-    .replace(/\s+/g, ' ').trim();
-  if (!text) throw new Error('Empty NLT proverb');
-  return text;
-}
 async function renderDailyProverb(date = new Date()) {
   const entry = selectDailyProverb(date), ticker = document.querySelector('.proverb-ticker');
   if (ticker.dataset.proverbDate === entry.dateKey &&
@@ -322,10 +311,14 @@ async function renderDailyProverb(date = new Date()) {
   paintDailyProverb(entry, 'Loading today’s NLT proverb…', 'loading');
   const timeout = setTimeout(()=>controller.abort(), 10000);
   try {
-    const url = `https://api.nlt.to/api/passages?ref=Proverbs.${entry.chapter}.${entry.verse}&version=NLT&key=TEST`;
-    const response = await fetch(url, {signal:controller.signal, credentials:'omit'});
-    if (!response.ok) throw new Error('NLT source unavailable');
-    const text = parseNltVerse(await response.text(), entry);
+    const url = new URL('daily-proverb.json', document.baseURI);
+    const response = await fetch(url, {signal:controller.signal, credentials:'omit', cache:'no-store'});
+    if (!response.ok) throw new Error('NLT cache unavailable');
+    const saved = await response.json();
+    if (saved.dateKey !== entry.dateKey || saved.version !== 'NLT' ||
+        saved.chapter !== entry.chapter || saved.verse !== entry.verse ||
+        typeof saved.text !== 'string' || !saved.text.trim()) throw new Error('NLT cache is not current');
+    const text = saved.text;
     if (proverbRequest !== controller) return;
     paintDailyProverb(entry, text, 'loaded');
     proverbRetryAfter = 0;
@@ -333,13 +326,13 @@ async function renderDailyProverb(date = new Date()) {
     if (proverbRequest !== controller) return;
     // Keep the NLT chapter link usable during outages; never relabel a KJV quote.
     paintDailyProverb(entry, 'Read today’s NLT proverb — tap Daily Proverb.', 'unavailable');
-    proverbRetryAfter = Date.now() + 10 * 60 * 1000;
+    proverbRetryAfter = Date.now() + 60 * 1000;
   } finally {
     clearTimeout(timeout);
     if (proverbRequest === controller) proverbRequest = null;
   }
 }
-// Minute-boundary checks handle Eastern midnight and DST; fetch once per day per page load.
+// Recheck at Eastern midnight; while a daily refresh is pending, retry our cache each minute.
 function scheduleProverbRefresh() {
   setTimeout(()=>{renderDailyProverb();scheduleProverbRefresh()},60000-(Date.now()%60000)+15);
 }

@@ -1,0 +1,46 @@
+name: Cache daily NLT proverb
+
+on:
+  schedule:
+    - cron: '7 0 * * *'
+      timezone: America/Kentucky/Louisville
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/cache_daily_proverb.py
+      - .github/workflows/daily-proverb.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-proverb-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check cache behavior
+        run: python -m unittest discover -s tests
+      - name: Fetch only if today's verse is missing
+        run: python scripts/cache_daily_proverb.py
+      - name: Publish shared cache
+        run: |
+          git add daily-proverb.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Refresh shared daily NLT proverb'
+          git pull --rebase origin main
+          git push origin HEAD:main
