@@ -311,13 +311,29 @@ async function renderDailyProverb(date = new Date()) {
   paintDailyProverb(entry, 'Loading today’s NLT proverb…', 'loading');
   const timeout = setTimeout(()=>controller.abort(), 10000);
   try {
-    const url = new URL('daily-proverb.json', document.baseURI);
-    const response = await fetch(url, {signal:controller.signal, credentials:'omit', cache:'no-store'});
-    if (!response.ok) throw new Error('NLT cache unavailable');
-    const saved = await response.json();
-    if (saved.dateKey !== entry.dateKey || saved.version !== 'NLT' ||
-        saved.chapter !== entry.chapter || saved.verse !== entry.verse ||
-        typeof saved.text !== 'string' || !saved.text.trim()) throw new Error('NLT cache is not current');
+    // The production project is deployed separately from GitHub. Read its public
+    // shared cache directly so each daily refresh needs no website redeployment.
+    const urls = [
+      'https://raw.githubusercontent.com/unpaidintern9/whataboutitpod/main/daily-proverb.json',
+      new URL('daily-proverb.json', document.baseURI).href
+    ];
+    let saved = null;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {signal:controller.signal, credentials:'omit', cache:'no-store'});
+        if (!response.ok) continue;
+        const candidate = await response.json();
+        if (candidate.dateKey === entry.dateKey && candidate.version === 'NLT' &&
+            candidate.chapter === entry.chapter && candidate.verse === entry.verse &&
+            typeof candidate.text === 'string' && candidate.text.trim()) {
+          saved = candidate;
+          break;
+        }
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+      }
+    }
+    if (!saved) throw new Error('NLT cache is not current');
     const text = saved.text;
     if (proverbRequest !== controller) return;
     paintDailyProverb(entry, text, 'loaded');
