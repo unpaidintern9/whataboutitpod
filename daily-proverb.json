@@ -5,5 +5,25 @@
   "reference": "Proverbs 20:24",
   "version": "NLT",
   "text": "The Lord directs our steps, so why try to understand everything along the way?",
-  "source": "https://api.nlt.to/"
+  "source": "https://api.nlt.to/",
+  "upcoming": [
+    {
+      "dateKey": "2026-11-21",
+      "chapter": 21,
+      "verse": 21,
+      "reference": "Proverbs 21:21",
+      "version": "NLT",
+      "text": "Whoever pursues righteousness and unfailing love will find life, righteousness, and honor.",
+      "source": "https://api.nlt.to/"
+    },
+    {
+      "dateKey": "2026-11-22",
+      "chapter": 22,
+      "verse": 1,
+      "reference": "Proverbs 22:1",
+      "version": "NLT",
+      "text": "Proverbs 22 Choose a good reputation over great riches; being held in high esteem is better than silver or gold.",
+      "source": "https://api.nlt.to/"
+    }
+  ]
 }

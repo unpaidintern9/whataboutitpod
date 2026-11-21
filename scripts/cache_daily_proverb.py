@@ -1,7 +1,7 @@
-"""Fetch one shared daily NLT proverb; never request again for a valid cached day."""
+"""Keep today and the next two Louisville dates in the shared NLT cache."""
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlencode
@@ -62,35 +62,58 @@ class VerseParser(HTMLParser):
         return text
 
 
+def valid_entry(entry, day):
+    chapter, verse = day.day, VERSES[day.day - 1]
+    return (isinstance(entry, dict) and entry.get('dateKey') == day.isoformat()
+            and entry.get('version') == 'NLT' and entry.get('chapter') == chapter
+            and entry.get('verse') == verse
+            and isinstance(entry.get('text'), str) and entry['text'].strip())
+
+
 def refresh(cache=CACHE, now=None, opener=urlopen):
     today = (now or datetime.now(TIMEZONE)).astimezone(TIMEZONE).date()
-    day = today.isoformat()
-    chapter, verse = today.day, VERSES[today.day - 1]
-    if cache.exists():
-        try:
-            saved = json.loads(cache.read_text(encoding='utf-8'))
-            if (saved.get('dateKey') == day and saved.get('version') == 'NLT'
-                    and saved.get('chapter') == chapter and saved.get('verse') == verse
-                    and isinstance(saved.get('text'), str) and saved['text'].strip()):
-                print(f'Already cached for {day}; no API request.')
-                return False
-        except (ValueError, TypeError, AttributeError):
-            pass
-    params = urlencode({'ref': f'Proverbs.{chapter}.{verse}', 'version': 'NLT', 'key': 'TEST'})
-    request = Request(f'https://api.nlt.to/api/passages?{params}',
-                      headers={'User-Agent': 'whataboutitpod daily proverb cache'})
-    with opener(request, timeout=20) as response:
-        html = response.read().decode('utf-8')
-    parser = VerseParser(chapter, verse)
-    parser.feed(html)
-    saved = {'dateKey': day, 'chapter': chapter, 'verse': verse,
-             'reference': f'Proverbs {chapter}:{verse}', 'version': 'NLT',
-             'text': parser.text(), 'source': 'https://api.nlt.to/'}
-    # Failed requests/parsing leave the last good cache untouched.
+    days = [today + timedelta(days=offset) for offset in range(3)]
+    entries = []
+    try:
+        previous = json.loads(cache.read_text(encoding='utf-8'))
+        if isinstance(previous, dict):
+            entries = [{key: value for key, value in previous.items() if key != 'upcoming'}]
+            upcoming = previous.get('upcoming')
+            if isinstance(upcoming, list):
+                entries.extend(upcoming)
+    except (FileNotFoundError, ValueError):
+        previous = None
+
+    saved = {}
+    for day in days:
+        entry = next((entry for entry in entries if valid_entry(entry, day)), None)
+        if entry:
+            saved[day] = entry
+    missing = [day for day in days if day not in saved]
+    if missing:
+        refs = ','.join(f'Proverbs.{day.day}.{VERSES[day.day - 1]}' for day in missing)
+        params = urlencode({'ref': refs, 'version': 'NLT', 'key': 'TEST'})
+        request = Request(f'https://api.nlt.to/api/passages?{params}',
+                          headers={'User-Agent': 'whataboutitpod daily proverb cache'})
+        with opener(request, timeout=20) as response:
+            html = response.read().decode('utf-8')
+        for day in missing:
+            chapter, verse = day.day, VERSES[day.day - 1]
+            parser = VerseParser(chapter, verse)
+            parser.feed(html)
+            saved[day] = {'dateKey': day.isoformat(), 'chapter': chapter, 'verse': verse,
+                          'reference': f'Proverbs {chapter}:{verse}', 'version': 'NLT',
+                          'text': parser.text(), 'source': 'https://api.nlt.to/'}
+    payload = {**saved[today], 'upcoming': [saved[day] for day in days[1:]]}
+    if payload == previous:
+        print(f'Already cached through {days[-1]}; no API request.')
+        return False
+
+    # Failed requests and parsing leave the last good cache intact.
     temporary = cache.with_suffix('.tmp')
-    temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     os.replace(temporary, cache)
-    print(f'Cached {saved["reference"]} (NLT) for {day}.')
+    print(f'Cached NLT proverbs through {days[-1]}.')
     return True
 
 

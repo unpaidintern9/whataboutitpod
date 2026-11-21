@@ -2,7 +2,7 @@ name: Cache daily NLT proverb
 
 on:
   schedule:
-    - cron: '7 0 * * *'
+    - cron: '37 1 * * *'
       timezone: America/Kentucky/Louisville
   workflow_dispatch:
   push:
@@ -31,7 +31,7 @@ jobs:
           python-version: '3.12'
       - name: Check cache behavior
         run: python -m unittest discover -s tests
-      - name: Fetch only if today's verse is missing
+      - name: Fill missing dates in the three-day cache
         run: python scripts/cache_daily_proverb.py
       - name: Publish shared cache
         run: |

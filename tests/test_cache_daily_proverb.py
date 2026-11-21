@@ -28,21 +28,38 @@ class CacheTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 p.text()
 
-    def test_same_day_rerun_makes_no_request(self):
-        with tempfile.TemporaryDirectory() as d:
-            file = Path(d) / 'daily-proverb.json'
+    def test_cache_rollover_reuses_entries_and_fetches_only_missing_dates(self):
+        from urllib.parse import parse_qs, urlsplit
+
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / 'daily-proverb.json'
             calls = []
+
             def opener(request, **kwargs):
-                calls.append(request.full_url)
-                return BytesIO(b'<verse_export bk="prov" ch="10" vn="12"><p>Example test text.</p></verse_export>')
-            now = datetime(2026, 11, 11, 4, 59, tzinfo=timezone.utc)
-            self.assertTrue(cache.refresh(file, now, opener))
-            self.assertFalse(cache.refresh(file, now, opener))
-            self.assertEqual(len(calls), 1)
-            self.assertEqual(json.loads(file.read_text())['dateKey'], '2026-11-10')
+                refs = parse_qs(urlsplit(request.full_url).query)['ref'][0]
+                calls.append(refs)
+                response = []
+                for ref in refs.split(','):
+                    _, chapter, verse = ref.split('.')
+                    response.append(f'<verse_export bk="prov" ch="{chapter}" vn="{verse}">'
+                                    '<p>Example test text.</p></verse_export>')
+                return BytesIO(''.join(response).encode())
+
+            before_midnight = datetime(2026, 11, 11, 4, 59, tzinfo=timezone.utc)
+            after_midnight = datetime(2026, 11, 11, 5, tzinfo=timezone.utc)
+            self.assertTrue(cache.refresh(file, before_midnight, opener))
+            self.assertFalse(cache.refresh(file, before_midnight, opener))
+            saved = json.loads(file.read_text())
+            self.assertEqual(saved['dateKey'], '2026-11-10')
+            self.assertEqual([v['dateKey'] for v in saved['upcoming']],
+                             ['2026-11-11', '2026-11-12'])
+            self.assertTrue(cache.refresh(file, after_midnight, opener))
+            self.assertEqual(calls, ['Proverbs.10.12,Proverbs.11.2,Proverbs.12.25', 'Proverbs.13.20'])
+            self.assertEqual(json.loads(file.read_text())['dateKey'], '2026-11-11')
+
             previous = file.read_bytes()
             with self.assertRaises(ValueError):
-                cache.refresh(file, datetime(2026, 11, 11, 5, tzinfo=timezone.utc),
+                cache.refresh(file, datetime(2026, 11, 12, 5, tzinfo=timezone.utc),
                               lambda *a, **k: BytesIO(b'<html>error</html>'))
             self.assertEqual(file.read_bytes(), previous)
 

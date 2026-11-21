@@ -1,0 +1,48 @@
+name: Refresh Latest Moments
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/cache_latest_moments.py
+      - .github/workflows/latest-moments.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: latest-moments-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Scan configured social feeds
+        id: scan
+        continue-on-error: true
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+        run: python3 scripts/cache_latest_moments.py
+      - name: Publish updated clip links
+        run: |
+          git add latest-moments.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Refresh shared Latest Moments cache'
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Report source failure
+        if: steps.scan.outcome == 'failure'
+        run: exit 1
