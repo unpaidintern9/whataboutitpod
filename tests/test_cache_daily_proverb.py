@@ -20,6 +20,17 @@ class CacheTests(unittest.TestCase):
                '<p>second<span class="tn"><a>ignore</a></span>.</p></verse_export>')
         self.assertEqual(p.text(), 'First & LORD second.')
 
+    def test_parser_omits_chapter_heading_from_first_verse(self):
+        for chapter in (15, 22, 28):
+            with self.subTest(chapter=chapter):
+                p = cache.VerseParser(chapter, 1)
+                p.feed(f'<verse_export bk="prov" ch="{chapter}" vn="1">'
+                       '<p class="chapter-number"><span class="cw">Proverbs</span>&nbsp;'
+                       f'<span class="cw_ch">{chapter}</span></p>'
+                       '<p class="poet1-vn-ch-hd"><span class="vn">1</span>First line;</p>'
+                       '<p class="poet2">second line.</p></verse_export>')
+                self.assertEqual(p.text(), 'First line; second line.')
+
     def test_wrong_or_empty_response_rejected(self):
         for html in ('<html>rate limit</html>', '<verse_export bk="john" ch="10" vn="12">wrong</verse_export>',
                      '<verse_export bk="prov" ch="10" vn="12"></verse_export>'):

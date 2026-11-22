@@ -37,7 +37,7 @@ class VerseParser(HTMLParser):
                 if tag not in ('br', 'hr', 'img', 'input', 'meta', 'link'):
                     self.skip += 1
             elif tag in ('script', 'style', 'sup') or set(attrs.get('class', '').split()) & {
-                    'vn', 'tn', 'fn', 'footnote'}:
+                    'vn', 'tn', 'fn', 'footnote', 'chapter-number'}:
                 self.skip = 1
             elif tag in ('p', 'br'):
                 self.parts.append(' ')
