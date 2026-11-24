@@ -1,21 +1,12 @@
 {
-  "dateKey": "2026-11-23",
-  "chapter": 23,
-  "verse": 12,
-  "reference": "Proverbs 23:12",
+  "dateKey": "2026-11-24",
+  "chapter": 24,
+  "verse": 3,
+  "reference": "Proverbs 24:3",
   "version": "NLT",
-  "text": "Commit yourself to instruction; listen carefully to words of knowledge.",
+  "text": "A house is built by wisdom and becomes strong through good sense.",
   "source": "https://api.nlt.to/",
   "upcoming": [
-    {
-      "dateKey": "2026-11-24",
-      "chapter": 24,
-      "verse": 3,
-      "reference": "Proverbs 24:3",
-      "version": "NLT",
-      "text": "A house is built by wisdom and becomes strong through good sense.",
-      "source": "https://api.nlt.to/"
-    },
     {
       "dateKey": "2026-11-25",
       "chapter": 25,
@@ -23,6 +14,15 @@
       "reference": "Proverbs 25:11",
       "version": "NLT",
       "text": "Timely advice is lovely, like golden apples in a silver basket.",
+      "source": "https://api.nlt.to/"
+    },
+    {
+      "dateKey": "2026-11-26",
+      "chapter": 26,
+      "verse": 20,
+      "reference": "Proverbs 26:20",
+      "version": "NLT",
+      "text": "Fire goes out without wood, and quarrels disappear when gossip stops.",
       "source": "https://api.nlt.to/"
     }
   ]
