@@ -1,21 +1,12 @@
 {
-  "dateKey": "2026-11-24",
-  "chapter": 24,
-  "verse": 3,
-  "reference": "Proverbs 24:3",
+  "dateKey": "2026-11-25",
+  "chapter": 25,
+  "verse": 11,
+  "reference": "Proverbs 25:11",
   "version": "NLT",
-  "text": "A house is built by wisdom and becomes strong through good sense.",
+  "text": "Timely advice is lovely, like golden apples in a silver basket.",
   "source": "https://api.nlt.to/",
   "upcoming": [
-    {
-      "dateKey": "2026-11-25",
-      "chapter": 25,
-      "verse": 11,
-      "reference": "Proverbs 25:11",
-      "version": "NLT",
-      "text": "Timely advice is lovely, like golden apples in a silver basket.",
-      "source": "https://api.nlt.to/"
-    },
     {
       "dateKey": "2026-11-26",
       "chapter": 26,
@@ -23,6 +14,15 @@
       "reference": "Proverbs 26:20",
       "version": "NLT",
       "text": "Fire goes out without wood, and quarrels disappear when gossip stops.",
+      "source": "https://api.nlt.to/"
+    },
+    {
+      "dateKey": "2026-11-27",
+      "chapter": 27,
+      "verse": 17,
+      "reference": "Proverbs 27:17",
+      "version": "NLT",
+      "text": "As iron sharpens iron, so a friend sharpens a friend.",
       "source": "https://api.nlt.to/"
     }
   ]
