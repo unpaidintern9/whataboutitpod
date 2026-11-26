@@ -1,21 +1,12 @@
 {
-  "dateKey": "2026-11-25",
-  "chapter": 25,
-  "verse": 11,
-  "reference": "Proverbs 25:11",
+  "dateKey": "2026-11-26",
+  "chapter": 26,
+  "verse": 20,
+  "reference": "Proverbs 26:20",
   "version": "NLT",
-  "text": "Timely advice is lovely, like golden apples in a silver basket.",
+  "text": "Fire goes out without wood, and quarrels disappear when gossip stops.",
   "source": "https://api.nlt.to/",
   "upcoming": [
-    {
-      "dateKey": "2026-11-26",
-      "chapter": 26,
-      "verse": 20,
-      "reference": "Proverbs 26:20",
-      "version": "NLT",
-      "text": "Fire goes out without wood, and quarrels disappear when gossip stops.",
-      "source": "https://api.nlt.to/"
-    },
     {
       "dateKey": "2026-11-27",
       "chapter": 27,
@@ -23,6 +14,15 @@
       "reference": "Proverbs 27:17",
       "version": "NLT",
       "text": "As iron sharpens iron, so a friend sharpens a friend.",
+      "source": "https://api.nlt.to/"
+    },
+    {
+      "dateKey": "2026-11-28",
+      "chapter": 28,
+      "verse": 1,
+      "reference": "Proverbs 28:1",
+      "version": "NLT",
+      "text": "The wicked run away when no one is chasing them, but the godly are as bold as lions.",
       "source": "https://api.nlt.to/"
     }
   ]
